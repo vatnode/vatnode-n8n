@@ -17,9 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 22 ships npm 10, which signs provenance but cannot authenticate the
+      # publish over OIDC — trusted publishing needs the npm that comes with 24.
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
       - run: npm ci
@@ -28,4 +30,16 @@ jobs:
 
       - run: npm run build
 
-      - run: npm publish --provenance --access public
+      # npm refuses to attach a trusted publisher to a package that does not
+      # exist yet, so the very first release runs with a granular NPM_TOKEN
+      # secret. Provenance is produced either way. Delete the secret once the
+      # trusted publisher is configured and every later release uses OIDC.
+      - name: Publish with token (first release only)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Publish with trusted publishing
+        if: ${{ secrets.NPM_TOKEN == '' }}
+        run: npm publish --provenance --access public
