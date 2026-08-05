@@ -1,0 +1,63 @@
+{
+  "name": "n8n-nodes-vatnode",
+  "version": "0.1.0",
+  "description": "Validate EU VAT numbers against VIES and look up EU VAT rates in n8n, powered by vatnode.",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "vat",
+    "vies",
+    "eu",
+    "tax",
+    "vatnode"
+  ],
+  "license": "MIT",
+  "homepage": "https://vatnode.dev",
+  "author": {
+    "name": "Iurii Rogulia",
+    "email": "iurii@rogulia.fi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vatnode/vatnode-n8n.git"
+  },
+  "engines": {
+    "node": ">=20.15"
+  },
+  "scripts": {
+    "generate": "node scripts/generate-patterns.mjs",
+    "build": "npm run generate && n8n-node build",
+    "dev": "n8n-node dev",
+    "lint": "n8n-node lint",
+    "lint:fix": "n8n-node lint --fix",
+    "prepublishOnly": "npm run generate && n8n-node prerelease",
+    "release": "n8n-node release"
+  },
+  "files": [
+    "dist"
+  ],
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/VatnodeApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Vatnode/Vatnode.node.js"
+    ],
+    "strict": true
+  },
+  "devDependencies": {
+    "@n8n/node-cli": "^0.42.1",
+    "eu-vat-rates-data": "^2026.7.1",
+    "n8n-workflow": "^2.16.0",
+    "eslint": "9.32.0",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2"
+  },
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  },
+  "bugs": {
+    "url": "https://github.com/vatnode/vatnode-n8n/issues"
+  }
+}
