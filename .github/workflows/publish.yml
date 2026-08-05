@@ -14,6 +14,9 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # `secrets` cannot be read from a step-level `if`, so resolve it once here.
+    env:
+      HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,11 +38,11 @@ jobs:
       # secret. Provenance is produced either way. Delete the secret once the
       # trusted publisher is configured and every later release uses OIDC.
       - name: Publish with token (first release only)
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        if: env.HAS_NPM_TOKEN == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
 
       - name: Publish with trusted publishing
-        if: ${{ secrets.NPM_TOKEN == '' }}
+        if: env.HAS_NPM_TOKEN != 'true'
         run: npm publish --provenance --access public
