@@ -19,6 +19,14 @@ function normalizeVatId(vatId: string): string {
 	return vatId.toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
+/**
+ * An expression such as {{ $json.vatId }} resolves to undefined on an item that
+ * lacks the field, so a parameter typed as string is not guaranteed to be one.
+ */
+function toStringParam(value: unknown): string {
+	return value === undefined || value === null ? '' : String(value);
+}
+
 export class Vatnode implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'vatnode',
@@ -163,9 +171,9 @@ export class Vatnode implements INodeType {
 				let result: unknown;
 
 				if (resource === 'vat' && operation === 'checkFormat') {
-					result = checkFormat(this.getNodeParameter('vatId', i) as string);
+					result = checkFormat(toStringParam(this.getNodeParameter('vatId', i)));
 				} else if (resource === 'vat' && operation === 'validate') {
-					const vatId = normalizeVatId(this.getNodeParameter('vatId', i) as string);
+					const vatId = normalizeVatId(toStringParam(this.getNodeParameter('vatId', i)));
 					if (vatId === '') {
 						throw new NodeOperationError(this.getNode(), 'The VAT number is empty', {
 							itemIndex: i,
@@ -178,7 +186,12 @@ export class Vatnode implements INodeType {
 					};
 					result = await this.helpers.httpRequestWithAuthentication.call(this, 'vatnodeApi', options);
 				} else if (resource === 'rate' && operation === 'get') {
-					const input = (this.getNodeParameter('countryCode', i) as string).trim().toUpperCase();
+					const input = toStringParam(this.getNodeParameter('countryCode', i)).trim().toUpperCase();
+					if (input === '') {
+						throw new NodeOperationError(this.getNode(), 'The country code is empty', {
+							itemIndex: i,
+						});
+					}
 					// VIES writes Greece as EL, the rate endpoint keys it as GR.
 					const countryCode = input === 'EL' ? 'GR' : input;
 					result = await this.helpers.httpRequest({
@@ -216,6 +229,10 @@ export class Vatnode implements INodeType {
 						pairedItem: { item: i },
 					});
 					continue;
+				}
+				// Input problems are ours, not the API's — keep them out of NodeApiError.
+				if (error instanceof NodeOperationError) {
+					throw new NodeOperationError(this.getNode(), error.message, { itemIndex: i });
 				}
 				throw new NodeApiError(this.getNode(), error as JsonObject, { itemIndex: i });
 			}
