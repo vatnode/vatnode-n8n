@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-vatnode",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Validate EU VAT numbers against VIES and look up EU VAT rates in n8n, powered by vatnode.",
   "keywords": [
     "n8n-community-node-package",
