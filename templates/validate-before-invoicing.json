@@ -1,0 +1,250 @@
+{
+	"name": "Decide reverse charge before issuing an invoice",
+	"nodes": [
+		{
+			"parameters": {},
+			"id": "a2000000-0000-4000-8000-000000000001",
+			"name": "Run invoice check",
+			"type": "n8n-nodes-base.manualTrigger",
+			"typeVersion": 1,
+			"position": [-560, 0]
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "s2000000-0000-4000-8000-000000000001",
+							"name": "customerVatId",
+							"value": "DE811569869",
+							"type": "string"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000002",
+							"name": "sellerCountryCode",
+							"value": "FI",
+							"type": "string"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000003",
+							"name": "netAmount",
+							"value": 1200,
+							"type": "number"
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "a2000000-0000-4000-8000-000000000002",
+			"name": "Invoice draft",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [-340, 0],
+			"notes": "Replace this with the invoice data from your billing system."
+		},
+		{
+			"parameters": {
+				"vatId": "={{ $json.customerVatId }}"
+			},
+			"id": "a2000000-0000-4000-8000-000000000003",
+			"name": "Validate customer VAT",
+			"type": "n8n-nodes-vatnode.vatnode",
+			"typeVersion": 1,
+			"position": [-120, 0],
+			"credentials": {
+				"vatnodeApi": {
+					"id": "1",
+					"name": "Vatnode API"
+				}
+			}
+		},
+		{
+			"parameters": {
+				"conditions": {
+					"options": {
+						"caseSensitive": true,
+						"leftValue": "",
+						"typeValidation": "strict",
+						"version": 2
+					},
+					"conditions": [
+						{
+							"id": "c2000000-0000-4000-8000-000000000001",
+							"leftValue": "={{ $json.valid }}",
+							"rightValue": true,
+							"operator": {
+								"type": "boolean",
+								"operation": "true",
+								"singleValue": true
+							}
+						},
+						{
+							"id": "c2000000-0000-4000-8000-000000000002",
+							"leftValue": "={{ $json.countryCode }}",
+							"rightValue": "={{ $('Invoice draft').item.json.sellerCountryCode }}",
+							"operator": {
+								"type": "string",
+								"operation": "notEquals"
+							}
+						}
+					],
+					"combinator": "and"
+				},
+				"options": {}
+			},
+			"id": "a2000000-0000-4000-8000-000000000004",
+			"name": "Valid and cross-border?",
+			"type": "n8n-nodes-base.if",
+			"typeVersion": 2,
+			"position": [100, 0],
+			"notes": "Reverse charge needs both: a live VIES registration and a customer in another member state."
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "s2000000-0000-4000-8000-000000000010",
+							"name": "taxTreatment",
+							"value": "reverse_charge",
+							"type": "string"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000011",
+							"name": "vatRate",
+							"value": 0,
+							"type": "number"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000012",
+							"name": "vatAmount",
+							"value": 0,
+							"type": "number"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000013",
+							"name": "invoiceNote",
+							"value": "VAT reverse charge, Article 196 of Council Directive 2006/112/EC",
+							"type": "string"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000014",
+							"name": "customerName",
+							"value": "={{ $json.companyName }}",
+							"type": "string"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000015",
+							"name": "consultationNumber",
+							"value": "={{ $json.consultationNumber }}",
+							"type": "string"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000016",
+							"name": "verifiedAt",
+							"value": "={{ $json.verifiedAt }}",
+							"type": "string"
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "a2000000-0000-4000-8000-000000000005",
+			"name": "Reverse charge, 0%",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [340, -120],
+			"notes": "Keep consultationNumber and verifiedAt on the invoice record. That pair is the audit evidence."
+		},
+		{
+			"parameters": {
+				"resource": "rate",
+				"countryCode": "={{ $('Invoice draft').item.json.sellerCountryCode }}"
+			},
+			"id": "a2000000-0000-4000-8000-000000000006",
+			"name": "Get domestic rate",
+			"type": "n8n-nodes-vatnode.vatnode",
+			"typeVersion": 1,
+			"position": [340, 120],
+			"notes": "No API key needed for rate lookups."
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "s2000000-0000-4000-8000-000000000020",
+							"name": "taxTreatment",
+							"value": "domestic_vat",
+							"type": "string"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000021",
+							"name": "vatRate",
+							"value": "={{ $json.standardRate }}",
+							"type": "number"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000022",
+							"name": "vatAmount",
+							"value": "={{ ($('Invoice draft').item.json.netAmount * $json.standardRate / 100).toFixed(2) }}",
+							"type": "number"
+						},
+						{
+							"id": "s2000000-0000-4000-8000-000000000023",
+							"name": "invoiceNote",
+							"value": "={{ 'Standard VAT at ' + $json.standardRate + '% applies.' }}",
+							"type": "string"
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "a2000000-0000-4000-8000-000000000007",
+			"name": "Charge domestic VAT",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [560, 120]
+		},
+		{
+			"parameters": {
+				"content": "## Reverse Charge or Domestic VAT, Decided by VIES\n\nReverse charge only applies if the customer's VAT number is live in VIES **and** the customer is in another member state. Anything else falls back to your domestic rate.\n\nAdd a **Vatnode API** credential to the Validate node. Free key, no card: [vatnode.dev/dashboard/api-keys](https://vatnode.dev/dashboard/api-keys).\n\nRate lookups need no key.",
+				"height": 300,
+				"width": 440
+			},
+			"id": "a2000000-0000-4000-8000-000000000008",
+			"name": "Read me",
+			"type": "n8n-nodes-base.stickyNote",
+			"typeVersion": 1,
+			"position": [-560, -380]
+		}
+	],
+	"connections": {
+		"Run invoice check": {
+			"main": [[{ "node": "Invoice draft", "type": "main", "index": 0 }]]
+		},
+		"Invoice draft": {
+			"main": [[{ "node": "Validate customer VAT", "type": "main", "index": 0 }]]
+		},
+		"Validate customer VAT": {
+			"main": [[{ "node": "Valid and cross-border?", "type": "main", "index": 0 }]]
+		},
+		"Valid and cross-border?": {
+			"main": [
+				[{ "node": "Reverse charge, 0%", "type": "main", "index": 0 }],
+				[{ "node": "Get domestic rate", "type": "main", "index": 0 }]
+			]
+		},
+		"Get domestic rate": {
+			"main": [[{ "node": "Charge domestic VAT", "type": "main", "index": 0 }]]
+		}
+	},
+	"pinData": {},
+	"settings": {
+		"executionOrder": "v1"
+	},
+	"meta": {
+		"templateCredsSetupCompleted": false
+	},
+	"tags": []
+}

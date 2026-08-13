@@ -1,0 +1,162 @@
+{
+	"name": "Re-check customer VAT numbers on a schedule",
+	"nodes": [
+		{
+			"parameters": {
+				"rule": {
+					"interval": [
+						{
+							"field": "weeks",
+							"triggerAtDay": [1],
+							"triggerAtHour": 7
+						}
+					]
+				}
+			},
+			"id": "a3000000-0000-4000-8000-000000000001",
+			"name": "Every Monday morning",
+			"type": "n8n-nodes-base.scheduleTrigger",
+			"typeVersion": 1.2,
+			"position": [-560, 0]
+		},
+		{
+			"parameters": {
+				"assignments": {
+					"assignments": [
+						{
+							"id": "s3000000-0000-4000-8000-000000000001",
+							"name": "customers",
+							"value": "={{ [{ \"name\": \"Siemens AG\", \"vatId\": \"DE811569869\" }, { \"name\": \"Example Oy\", \"vatId\": \"FI12345671\" }] }}",
+							"type": "array"
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "a3000000-0000-4000-8000-000000000002",
+			"name": "Customer list",
+			"type": "n8n-nodes-base.set",
+			"typeVersion": 3.4,
+			"position": [-340, 0],
+			"notes": "Swap this for your real source — a database node, a spreadsheet, your CRM."
+		},
+		{
+			"parameters": {
+				"fieldToSplitOut": "customers",
+				"options": {}
+			},
+			"id": "a3000000-0000-4000-8000-000000000003",
+			"name": "One item per customer",
+			"type": "n8n-nodes-base.splitOut",
+			"typeVersion": 1,
+			"position": [-120, 0]
+		},
+		{
+			"parameters": {
+				"vatId": "={{ $json.vatId }}"
+			},
+			"id": "a3000000-0000-4000-8000-000000000004",
+			"name": "Re-validate against VIES",
+			"type": "n8n-nodes-vatnode.vatnode",
+			"typeVersion": 1,
+			"position": [100, 0],
+			"credentials": {
+				"vatnodeApi": {
+					"id": "1",
+					"name": "Vatnode API"
+				}
+			},
+			"onError": "continueRegularOutput",
+			"notes": "Errors continue instead of stopping the run: VIES has per-member-state downtime, and one unavailable country should not stop the rest."
+		},
+		{
+			"parameters": {
+				"conditions": {
+					"options": {
+						"caseSensitive": true,
+						"leftValue": "",
+						"typeValidation": "loose",
+						"version": 2
+					},
+					"conditions": [
+						{
+							"id": "c3000000-0000-4000-8000-000000000001",
+							"leftValue": "={{ $json.valid }}",
+							"rightValue": true,
+							"operator": {
+								"type": "boolean",
+								"operation": "notEquals"
+							}
+						}
+					],
+					"combinator": "and"
+				},
+				"looseTypeValidation": true,
+				"options": {}
+			},
+			"id": "a3000000-0000-4000-8000-000000000005",
+			"name": "Keep the problems",
+			"type": "n8n-nodes-base.filter",
+			"typeVersion": 2,
+			"position": [320, 0],
+			"notes": "Passes anything that is no longer valid, plus any item that errored."
+		},
+		{
+			"parameters": {
+				"select": "channel",
+				"channelId": {
+					"__rl": true,
+					"value": "",
+					"mode": "list",
+					"cachedResultName": ""
+				},
+				"text": "=:warning: VAT number needs attention\n*{{ $json.vatId || $json.error }}* is no longer valid in VIES.\nChecked {{ new Date().toISOString().slice(0, 10) }}.",
+				"otherOptions": {}
+			},
+			"id": "a3000000-0000-4000-8000-000000000006",
+			"name": "Tell the finance channel",
+			"type": "n8n-nodes-base.slack",
+			"typeVersion": 2.2,
+			"position": [540, 0],
+			"webhookId": "b3000000-0000-4000-8000-000000000001",
+			"notes": "Pick your channel, or replace this node with email, a ticket, a CRM field."
+		},
+		{
+			"parameters": {
+				"content": "## VAT Numbers Go Stale\n\nCompanies deregister, merge or get struck off, and nobody tells you — it surfaces during an audit. This workflow re-checks the list weekly and reports only the numbers that stopped validating.\n\nAdd a **Vatnode API** credential to the Validate node. Free key, no card: [vatnode.dev/dashboard/api-keys](https://vatnode.dev/dashboard/api-keys).\n\nIf you'd rather not run this yourself, vatnode does the same server-side and posts to a webhook — see [VAT monitoring](https://vatnode.dev/docs).",
+				"height": 320,
+				"width": 460
+			},
+			"id": "a3000000-0000-4000-8000-000000000007",
+			"name": "Read me",
+			"type": "n8n-nodes-base.stickyNote",
+			"typeVersion": 1,
+			"position": [-560, -400]
+		}
+	],
+	"connections": {
+		"Every Monday morning": {
+			"main": [[{ "node": "Customer list", "type": "main", "index": 0 }]]
+		},
+		"Customer list": {
+			"main": [[{ "node": "One item per customer", "type": "main", "index": 0 }]]
+		},
+		"One item per customer": {
+			"main": [[{ "node": "Re-validate against VIES", "type": "main", "index": 0 }]]
+		},
+		"Re-validate against VIES": {
+			"main": [[{ "node": "Keep the problems", "type": "main", "index": 0 }]]
+		},
+		"Keep the problems": {
+			"main": [[{ "node": "Tell the finance channel", "type": "main", "index": 0 }]]
+		}
+	},
+	"pinData": {},
+	"settings": {
+		"executionOrder": "v1"
+	},
+	"meta": {
+		"templateCredsSetupCompleted": false
+	},
+	"tags": []
+}

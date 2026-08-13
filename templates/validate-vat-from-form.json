@@ -1,0 +1,207 @@
+{
+	"name": "Validate a VAT number submitted through a form",
+	"nodes": [
+		{
+			"parameters": {
+				"formTitle": "Business Customer Sign-Up",
+				"formDescription": "We check the VAT number against the EU VIES register before your account goes live.",
+				"formFields": {
+					"values": [
+						{
+							"fieldLabel": "Company name",
+							"requiredField": true
+						},
+						{
+							"fieldLabel": "VAT number",
+							"placeholder": "DE123456789",
+							"requiredField": true
+						}
+					]
+				},
+				"options": {}
+			},
+			"id": "a1000000-0000-4000-8000-000000000001",
+			"name": "Sign-up form",
+			"type": "n8n-nodes-base.formTrigger",
+			"typeVersion": 2,
+			"position": [-460, 0],
+			"webhookId": "b1000000-0000-4000-8000-000000000001"
+		},
+		{
+			"parameters": {
+				"operation": "checkFormat",
+				"vatId": "={{ $json['VAT number'] }}"
+			},
+			"id": "a1000000-0000-4000-8000-000000000002",
+			"name": "Check format (free)",
+			"type": "n8n-nodes-vatnode.vatnode",
+			"typeVersion": 1,
+			"position": [-240, 0],
+			"notes": "Offline pattern check. No API call, so it runs first and keeps typos out of the quota."
+		},
+		{
+			"parameters": {
+				"conditions": {
+					"options": {
+						"caseSensitive": true,
+						"leftValue": "",
+						"typeValidation": "strict",
+						"version": 2
+					},
+					"conditions": [
+						{
+							"id": "c1000000-0000-4000-8000-000000000001",
+							"leftValue": "={{ $json.validFormat }}",
+							"rightValue": true,
+							"operator": {
+								"type": "boolean",
+								"operation": "true",
+								"singleValue": true
+							}
+						}
+					],
+					"combinator": "and"
+				},
+				"options": {}
+			},
+			"id": "a1000000-0000-4000-8000-000000000003",
+			"name": "Format looks right?",
+			"type": "n8n-nodes-base.if",
+			"typeVersion": 2,
+			"position": [-20, 0]
+		},
+		{
+			"parameters": {
+				"vatId": "={{ $json.normalized }}"
+			},
+			"id": "a1000000-0000-4000-8000-000000000004",
+			"name": "Validate against VIES",
+			"type": "n8n-nodes-vatnode.vatnode",
+			"typeVersion": 1,
+			"position": [220, -100],
+			"credentials": {
+				"vatnodeApi": {
+					"id": "1",
+					"name": "Vatnode API"
+				}
+			},
+			"notes": "Live VIES lookup. Spends one request from the monthly quota."
+		},
+		{
+			"parameters": {
+				"conditions": {
+					"options": {
+						"caseSensitive": true,
+						"leftValue": "",
+						"typeValidation": "strict",
+						"version": 2
+					},
+					"conditions": [
+						{
+							"id": "c1000000-0000-4000-8000-000000000002",
+							"leftValue": "={{ $json.valid }}",
+							"rightValue": true,
+							"operator": {
+								"type": "boolean",
+								"operation": "true",
+								"singleValue": true
+							}
+						}
+					],
+					"combinator": "and"
+				},
+				"options": {}
+			},
+			"id": "a1000000-0000-4000-8000-000000000005",
+			"name": "Registered in VIES?",
+			"type": "n8n-nodes-base.if",
+			"typeVersion": 2,
+			"position": [440, -100]
+		},
+		{
+			"parameters": {
+				"operation": "completion",
+				"completionTitle": "You're verified",
+				"completionMessage": "={{ $json.companyName }} is registered for VAT in {{ $json.countryName }}. We've saved the check as audit evidence.",
+				"options": {}
+			},
+			"id": "a1000000-0000-4000-8000-000000000006",
+			"name": "Accepted",
+			"type": "n8n-nodes-base.form",
+			"typeVersion": 1,
+			"position": [680, -200],
+			"webhookId": "b1000000-0000-4000-8000-000000000002"
+		},
+		{
+			"parameters": {
+				"operation": "completion",
+				"completionTitle": "We couldn't confirm that VAT number",
+				"completionMessage": "VIES has no active registration for this number. Check it and try again, or reply to our email and we'll sort it out.",
+				"options": {}
+			},
+			"id": "a1000000-0000-4000-8000-000000000007",
+			"name": "Not registered",
+			"type": "n8n-nodes-base.form",
+			"typeVersion": 1,
+			"position": [680, 0],
+			"webhookId": "b1000000-0000-4000-8000-000000000003"
+		},
+		{
+			"parameters": {
+				"operation": "completion",
+				"completionTitle": "That doesn't look like a VAT number",
+				"completionMessage": "={{ $json.error }}",
+				"options": {}
+			},
+			"id": "a1000000-0000-4000-8000-000000000008",
+			"name": "Wrong format",
+			"type": "n8n-nodes-base.form",
+			"typeVersion": 1,
+			"position": [220, 140],
+			"webhookId": "b1000000-0000-4000-8000-000000000004"
+		},
+		{
+			"parameters": {
+				"content": "## Two Checks, One Quota Hit\n\n**Check Format** runs offline and filters out typos without spending quota. Only the numbers that pass reach **Validate**, which does the live VIES lookup.\n\nAdd a **Vatnode API** credential to the Validate node before you run this. Get a key at [vatnode.dev/dashboard/api-keys](https://vatnode.dev/dashboard/api-keys) — the free plan needs no card.\n\nSet a Requester VAT under Account details in the vatnode dashboard, and every result carries a `consultationNumber` — the evidence a tax auditor asks for.",
+				"height": 320,
+				"width": 420
+			},
+			"id": "a1000000-0000-4000-8000-000000000009",
+			"name": "Read me",
+			"type": "n8n-nodes-base.stickyNote",
+			"typeVersion": 1,
+			"position": [-460, -400]
+		}
+	],
+	"connections": {
+		"Sign-up form": {
+			"main": [[{ "node": "Check format (free)", "type": "main", "index": 0 }]]
+		},
+		"Check format (free)": {
+			"main": [[{ "node": "Format looks right?", "type": "main", "index": 0 }]]
+		},
+		"Format looks right?": {
+			"main": [
+				[{ "node": "Validate against VIES", "type": "main", "index": 0 }],
+				[{ "node": "Wrong format", "type": "main", "index": 0 }]
+			]
+		},
+		"Validate against VIES": {
+			"main": [[{ "node": "Registered in VIES?", "type": "main", "index": 0 }]]
+		},
+		"Registered in VIES?": {
+			"main": [
+				[{ "node": "Accepted", "type": "main", "index": 0 }],
+				[{ "node": "Not registered", "type": "main", "index": 0 }]
+			]
+		}
+	},
+	"pinData": {},
+	"settings": {
+		"executionOrder": "v1"
+	},
+	"meta": {
+		"templateCredsSetupCompleted": false
+	},
+	"tags": []
+}

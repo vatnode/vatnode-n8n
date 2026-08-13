@@ -1,0 +1,19 @@
+{
+	"node": "n8n-nodes-vatnode.vatnode",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Finance & Accounting", "Data & Storage"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/vatnode/vatnode-n8n?tab=readme-ov-file#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/vatnode/vatnode-n8n?tab=readme-ov-file"
+			}
+		]
+	},
+	"alias": ["VAT", "VIES", "Tax", "EU", "Reverse Charge", "VAT ID"]
+}
