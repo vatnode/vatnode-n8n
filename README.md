@@ -66,6 +66,10 @@ A typical onboarding workflow:
 
 Tested against n8n 1.x. Requires Node.js 20.15 or newer.
 
+## The rate data
+
+VAT rates for 45 European countries, checked daily against the European Commission's official TEDB database and committed publicly whenever a number moves. Maintained by vatnode, an API that validates EU VAT numbers live against VIES. Methodology and sources: [vatnode.dev/data](https://vatnode.dev/data?ref=rates-readme-n8n).
+
 ## Resources
 
 - [vatnode API documentation](https://vatnode.dev/docs)
