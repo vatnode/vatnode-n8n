@@ -154,7 +154,7 @@
 			"type": "n8n-nodes-base.set",
 			"typeVersion": 3.4,
 			"position": [340, -120],
-			"notes": "Keep consultationNumber and verifiedAt on the invoice record. That pair is the audit evidence."
+			"notes": "Keep consultationNumber and verifiedAt on the invoice record as evidence that the check was made."
 		},
 		{
 			"parameters": {

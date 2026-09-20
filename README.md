@@ -36,7 +36,7 @@ To get a key:
 2. Open **Dashboard → API Keys** ([vatnode.dev/dashboard/api-keys](https://vatnode.dev/dashboard/api-keys)) and create a key. Live keys start with `vat_live_`. Every account also gets a `vat_test_` key, which returns fixture data for any VAT number and never spends quota — useful while you build the workflow.
 3. In n8n, add a new **Vatnode API** credential and paste the key.
 
-Worth doing: set your own VAT number under **Dashboard → Account details → Requester VAT**. VIES then issues a consultation number with every successful check, and vatnode returns it as `consultationNumber`. Keep it with the invoice record — that is the evidence a tax auditor asks for.
+Worth doing: set your own VAT number under **Dashboard → Account details → Requester VAT**. VIES then returns a consultation number on every qualified check, and vatnode passes it through as `consultationNumber`. Keep it with the invoice record — it proves the check was made against VIES at a given date and time.
 
 The credential test sends the reserved `XX0000001` test VAT number, which never reaches VIES and never spends quota.
 
